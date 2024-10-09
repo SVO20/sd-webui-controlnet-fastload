@@ -17,22 +17,23 @@ flyEmoji = "✈️"
 elemIdFlag = "controlnet_fastload_tab_"
 accessLevel = -1
 
-
 class viewDataWrap:
     def __init__(self, filepathList: list, picDict: dict):
+        print("PDebug: Entering     __init__")
         self.filepathList = filepathList
         self.picDict = picDict
 
-
 class ToolButton(gr.Button, gr.components.FormComponent):
     def __init__(self, **kwargs):
+        print("PDebug: Entering     __init__")
         super().__init__(variant="tool", elem_classes=["toolButton"], **kwargs)
 
     def get_block_name(self):
+        print("PDebug: Entering     get_block_name")
         return "button"
 
-
 def on_ui_tabs() -> list:
+    print("PDebug: Entering on_ui_tabs")
     global accessLevel
     from modules.shared import cmd_opts
     isRemote = cmd_opts.share or cmd_opts.ngrok or cmd_opts.listen or cmd_opts.server_name
@@ -41,8 +42,8 @@ def on_ui_tabs() -> list:
     tabDebug = True if os.getenv("CONTROLNET_FASTLOAD_DEBUG", "") == "True" else False  # Only for self-test
     viewPathSelectList = ["txt2img", "img2img", "manually"] if accessLevel > 1 else ["txt2img", "img2img"]
     viewPathSelectList = [] if accessLevel == 0 else viewPathSelectList
-    print_info(f"Load Controlnet Fastload Filter on isRemote={isRemote} and accessLevel={accessLevel}")
-    print_info(f"You have enabled access token in Controlnet Fastload Filter") if accessToken != "" else None
+    print_info(f"PDebug: Load Controlnet Fastload Filter on isRemote={isRemote} and accessLevel={accessLevel}")
+    print_info(f"PDebug: You have enabled access token in Controlnet Fastload Filter") if accessToken != "" else None
     with gr.Blocks(analytics_enabled=False) as ui_component:
         with gr.Column():
             with gr.Row():
@@ -116,7 +117,6 @@ def on_ui_tabs() -> list:
                             otherInfo = gr.HTML()
                             selectPicAddress = gr.Textbox(value="", visible=False, interactive=False)
                             selectPicControlnetAddress = gr.Textbox(value="", visible=False, interactive=False)
-                        pass
                     with gr.Row(equal_height=True):
                         tabDebugBox = gr.Textbox(value="True" if tabDebug else "False", visible=False)
                         with gr.Column(min_width=80):
@@ -153,7 +153,7 @@ def on_ui_tabs() -> list:
         viewPathSelect.select(fn=fnViewPathSelect,
                               inputs=viewPathSelect,
                               outputs=viewPath)
-        # 绑定左面五个事件
+        # Bind events for the buttons on the left
         firstPage.click(fn=fnLoadPicture,
                         inputs=fnLoadPictureInputList(firstPage),
                         outputs=fnLoadPictureOutputList)
@@ -172,11 +172,11 @@ def on_ui_tabs() -> list:
         filterManualSend.click(fn=fnLoadPicture,
                                inputs=fnLoadPictureInputListBase,
                                outputs=fnLoadPictureOutputList)
-        # 绑定filterKey变换事件, 注意可以返回gr.update
+        # Bind filterKey change event
         filterKey.input(fn=fnFilterKeyChange,
                         inputs=[filterKey, filterAll],
                         outputs=[filterValueDropDown, filterValueTextbox, filterAll])
-        # 绑定+按钮事件
+        # Bind "+" button event
         filterAddAll.click(fn=fnFilterAddAll,
                            inputs=[filterKey, filterValueDropDown, filterValueTextbox, filterAll],
                            outputs=[filterAll])
@@ -195,15 +195,16 @@ def fnViewPathChange(viewPath: str, viewPathSelect: str, lastViewPath: str) -> l
 
 def fnaccessTokenSubmit(accessTokenInput: str, accessTokenRightSHA512: str) -> list:
     global accessLevel
+    print("PDebug: Inside fnaccessTokenSubmit")
     if accessTokenInput == str(os.getenv("CONTROLNET_FASTLOAD_FILTER_ACCESS_TOKEN", "")):
         accessLevel = 2
         return [gr.update(visible=False), gr.update(visible=False)]
     else:
         return [gr.update(visible=True), gr.update(visible=True)]
 
-
 def fnGallerySelect(selectData: gr.SelectData, gallery: list, filterAll: list) -> list:
-    selectFile = gallery[selectData.index]['name']  # 它在临时文件夹，需要sha256寻找真相
+    print("PDebug: Inside fnGallerySelect")
+    selectFile = gallery[selectData.index]['name']  # It is in the temp folder, SHA256 is needed to verify
     with open(selectFile, 'rb') as f:
         originalFile = picSHA256[hashlib.sha256(f.read()).hexdigest()]
     with Image.open(selectFile) as img:
@@ -220,11 +221,13 @@ def fnGallerySelect(selectData: gr.SelectData, gallery: list, filterAll: list) -
             else:
                 result.append((f"[ControlNet {info}] {filter_}\n", None))
     returnCNFilePath = judgeControlnetDataFile(originalFile, gallery[selectData.index]['data'])
+    print("PDebug: fnGallerySelect completed")
     return [result, img.info['parameters'] if "parameters" in img.info else "",
             gallery[selectData.index]['data'], returnCNFilePath]
 
 
 def fnViewPathSelect(viewPathSelect: str) -> dict:
+    print("PDebug: Inside fnViewPathSelect")
     if viewPathSelect == "txt2img":
         return gr.update(value=os.path.join(scripts.basedir(), opts.data.get("outdir_txt2img_samples")),
                          interactive=False)
@@ -236,19 +239,24 @@ def fnViewPathSelect(viewPathSelect: str) -> dict:
 
 
 def fnFilterKeyChange(filterKey: str, filterAll: list) -> list:
+    print("PDebug: Inside fnFilterKeyChange")
     picDict = {}
     tmpList = [] if filterKey == "None" else [f"{filterKey} - {itm}" for itm in picDict[filterKey].keys()]
+    print("PDebug: fnFilterKeyChange completed")
     return [gr.update(visible=True, choices=tmpList, value=[]), gr.update(visible=False), filterAll]
 
 
 def fnFilterAddAll(filterKey: str, filterValueDropDown: list, filterValueTextbox: str, filterAll: list) -> list:
+    print("PDebug: Inside fnFilterAddAll")
     unique_filterAll = set(filterAll)
     if len(filterValueDropDown) > 0:
         unique_filterAll.update(filterValueDropDown)
+    print("PDebug: fnFilterAddAll completed")
     return list(unique_filterAll)
 
 
 def fnLoadPicture(*args) -> list:
+    print("PDebug: Inside fnLoadPicture")
     viewPath, viewPathSelect, lastViewPath, filterAll, filterKey, pageIndex = args[:6]
     global allViewData
     if accessLevel <= 0:
@@ -256,7 +264,7 @@ def fnLoadPicture(*args) -> list:
     if not (os.path.exists(viewPath) and os.path.isdir(viewPath)):
         raise gr.Error(f"ViewPath {viewPath} does not exist or not a folder")
     if viewPath != lastViewPath:
-        # 全新加载
+        # Fresh load
         filepathList, picDict = loadPicture(viewPath)
         allViewData[viewPath] = viewDataWrap(filepathList, picDict)
         tmpFilterKey = list(picDict.keys())
@@ -264,11 +272,11 @@ def fnLoadPicture(*args) -> list:
         displayPic, pageIndex_ = loadDisplayPic(*args,
                                                 filepathList_=filepathList, pageIndex_=pageIndex)
         calculateSHA256(displayPic)
-        # 第一次无法过滤，直接展示全部图片
+        # No filter for the first time, display all images
         return [viewPath, gr.update(value=displayPic), gr.update(choices=tmpFilterKey),
                 gr.update(value=pageIndex_), [], "", gr.update(value=[]), gr.update(value=[])]
     else:
-        # 直接对filepathList进行筛选
+        # Directly filter filepathList
         filepathList, picDict = (allViewData[viewPath].filepathList, allViewData[viewPath].picDict)
         allSet = set(filepathList)
         for itm in filterAll:
@@ -282,6 +290,7 @@ def fnLoadPicture(*args) -> list:
 
 
 def loadDisplayPic(*args, **kwargs) -> Tuple[List[str], int]:
+    print("PDebug: Inside loadDisplayPic")
     pageEnum = {
         "First Page": 0,
         "Prev Page": -1,
@@ -295,29 +304,31 @@ def loadDisplayPic(*args, **kwargs) -> Tuple[List[str], int]:
     # fix pageIndex_
     pageIndex_ = 1 if pageIndex_ is None else pageIndex_
     pageIndex_ = pageIndex_ if 1 <= pageIndex_ <= len(displayAllPic) else 1
-    # 无翻页操作
+    # No page turning operation
     if len(args) <= argsLenLimit:
         displayPic = filepathList_
-    # 有翻页操作, 首尾
+    # Page turning, first or last page
     elif len(args) > argsLenLimit and (args[argsLenLimit] == "First Page" or args[argsLenLimit] == "End Page"):
         pageIndex_ = 1 if args[argsLenLimit] == "First Page" else len(displayAllPic)
         displayPic = displayAllPic[pageIndex_ - 1]
-    # 有翻页操作，前后
+    # Page turning, previous or next page
     else:
         pageIndex_ = pageIndex_ + pageEnum[args[argsLenLimit]]
         pageIndex_ = pageIndex_ if 1 <= pageIndex_ <= len(displayAllPic) else pageIndex_ - pageEnum[args[argsLenLimit]]
         displayPic = displayAllPic[int(pageIndex_) - 1]
+    print("PDebug: loadDisplayPic completed")
     return displayPic, pageIndex_
 
 
 def loadPicture(filepath: str) -> Tuple[List[str], dict]:
+    print("PDebug: Inside loadPicture")
     filepathList_ = []
     picDict_ = {"preprocessor": {}, "model": {}, "weight": {}, "starting/ending": {}, "resize mode": {},
                 "pixel perfect": {}, "control mode": {}, "preprocessor params": {}}
     for folderName, subFolders, fileNames in os.walk(filepath):
         for fileName in fileNames:
             fullname = os.path.join(folderName, fileName)
-            # 处理png_info
+            # Process png_info
             try:
                 with Image.open(fullname) as img:
                     if "parameters" in img.info:
@@ -325,10 +336,12 @@ def loadPicture(filepath: str) -> Tuple[List[str], dict]:
                 filepathList_.append(fullname)
             except (PIL.UnidentifiedImageError, IOError, OSError, ValueError):
                 pass
+    print("PDebug: loadPicture completed")
     return filepathList_, picDict_
 
 
 def extractControlNet(fullname: str, pngInfo: str, picDict_: dict, mode: str) -> list:
+    print(f"PDebug: Inside extractControlNet, mode={mode}")
     res = re.findall(r'ControlNet[^"]+"([^"]+)"', pngInfo)
     pairList = []
     for itm in res:
@@ -340,14 +353,18 @@ def extractControlNet(fullname: str, pngInfo: str, picDict_: dict, mode: str) ->
             pairList.append(pairs)
         else:
             pass
+    print(f"PDebug: extractControlNet completed, mode={mode}")
     return pairList if mode == "diff" else None
 
 
 def calculateSHA256(fileList: list) -> None:
+    print("PDebug: Inside calculateSHA256")
     global picSHA256
     for file in fileList:
         with open(file, 'rb') as f:
             picSHA256[hashlib.sha256(f.read()).hexdigest()] = file
+    print("PDebug: calculateSHA256 completed")
 
 
 script_callbacks.on_ui_tabs(on_ui_tabs)
+

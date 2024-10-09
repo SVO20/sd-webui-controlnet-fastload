@@ -4,6 +4,7 @@ from modules import script_callbacks
 
 
 def on_ui_settings():
+    print("PDebug: Entering on_ui_settings")
     section = ('controlnet-fastload', "Controlnet Fastload")
     shared.opts.add_option(
         "isEnabledManualSend",
